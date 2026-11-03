@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en" class="dark scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SHARLINE — Private Movie Discovery & Streaming</title>
+  
+  <!-- Favicon / Meta -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2306b6d4'><path d='M4 6.47L17.5 12 4 17.53V6.47M2 4v16l19-8L2 4z'/></svg>">
+  <meta name="description" content="Minimalist private cinema index with instant search and Telegram deep-linking.">
+
+  <!-- Inter Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            neonCyan: '#06b6d4',
+            neonViolet: '#8b5cf6',
+            darkBg: '#090d16',
+            cardBg: 'rgba(15, 23, 42, 0.75)'
+          },
+          boxShadow: {
+            'glow-cyan': '0 0 25px -5px rgba(6, 182, 212, 0.35)',
+            'glow-button': '0 0 20px -3px rgba(6, 182, 212, 0.5)'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Glassmorphism utility */
+    .glass-nav {
+      background: rgba(9, 13, 22, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    
+    .glass-card {
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    /* Subtle pulse animation for skeleton loaders */
+    @keyframes subtlePulse {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 0.25; }
+    }
+    .skeleton {
+      animation: subtlePulse 1.8s ease-in-out infinite;
+    }
+  </style>
+</head>
+
+<body class="bg-darkBg text-slate-100 min-h-screen flex flex-col font-sans selection:bg-cyan-500 selection:text-black">
+
+  <!-- Ambient background glow effects -->
+  <div class="fixed top-0 left-1/4 w-96 h-96 bg-cyan-600/10 rounded-full blur-[120px] pointer-events-none -z-10"></div>
+  <div class="fixed bottom-0 right-1/4 w-96 h-96 bg-violet-600/10 rounded-full blur-[140px] pointer-events-none -z-10"></div>
+
+  <!-- Sticky Glassmorphic Header -->
+  <header class="sticky top-0 z-50 glass-nav transition-all duration-300">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex flex-col sm:flex-row items-center justify-between gap-4 py-3 sm:py-0">
+      
+      <!-- Brand Logo -->
+      <a href="#" class="flex items-center gap-2 group tracking-wider">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-violet-600 flex items-center justify-center shadow-glow-cyan transition-transform duration-300 group-hover:scale-105">
+          <svg class="w-5 h-5 text-white fill-current ml-0.5" viewBox="0 0 24 24">
+            <path d="M5 3l14 9-14 9V3z"/>
+          </svg>
+        </div>
+        <span class="text-2xl font-extrabold tracking-widest bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400">
+          SHAR<span class="text-cyan-400">LINE</span>
+        </span>
+      </a>
+
+      <!-- Live Search Bar -->
+      <div class="relative w-full sm:w-80 md:w-96">
+        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/>
+          </svg>
+        </div>
+        <input
+          type="text"
+          id="searchInput"
+          placeholder="Search by title, genre, year..."
+          autocomplete="off"
+          class="w-full pl-10 pr-10 py-2.5 bg-slate-900/80 border border-slate-700/60 rounded-full text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all duration-300 shadow-inner"
+        >
+        <!-- Clear search button -->
+        <button 
+          id="clearSearchBtn" 
+          aria-label="Clear search"
+          class="hidden absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-100 transition-colors"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
+
+    <!-- Top Info / Status Indicator -->
+    <div class="flex items-center justify-between mb-8 pb-4 border-b border-slate-800/80">
+      <div>
+        <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+          <span>Catalog</span>
+          <span class="inline-block w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+        </h1>
+        <p class="text-sm text-slate-400 mt-0.5">Stream through verified Telegram nodes</p>
+      </div>
+      <div id="movieCount" class="text-xs uppercase tracking-widest font-semibold px-3 py-1.5 rounded-full bg-slate-800/80 border border-slate-700 text-slate-300">
+        Loading...
+      </div>
+    </div>
+
+    <!-- Movie Grid -->
+    <div id="movieGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-8">
+      <!-- Skeleton Loading Placeholders will be rendered dynamically -->
+    </div>
+
+    <!-- Empty State -->
+    <div id="emptyState" class="hidden text-center py-20">
+      <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-800/80 border border-slate-700/70 flex items-center justify-center text-slate-400">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"/>
+        </svg>
+      </div>
+      <h3 class="text-lg font-bold text-slate-200">No films match your search</h3>
+      <p class="text-slate-400 text-sm mt-1 max-w-sm mx-auto">Try verifying your spelling or searching using broader keywords or genres.</p>
+    </div>
+
+    <!-- Fetch Error State -->
+    <div id="errorState" class="hidden text-center py-20">
+      <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+      </div>
+      <h3 class="text-lg font-bold text-rose-300">Unable to load movie library</h3>
+      <p class="text-slate-400 text-sm mt-1 max-w-md mx-auto">Please confirm that <code class="text-cyan-400 bg-slate-900 px-1 py-0.5 rounded">movies.json</code> is accessible in your directory and served via HTTP/HTTPS.</p>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="mt-auto border-t border-slate-800/80 bg-slate-950/60 backdrop-blur-md py-6 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div>&copy; 2026 <span class="text-slate-300 font-semibold">SHARLINE</span>. All media links redirect to self-hosted Telegram assets.</div>
+      <div class="flex items-center gap-4 text-slate-400">
+        <span>Fast Delivery</span>
+        <span>•</span>
+        <span>Minimal UI</span>
+        <span>•</span>
+        <span>Zero Ads</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Application Logic -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // DOM Elements
+      const grid = document.getElementById('movieGrid');
+      const searchInput = document.getElementById('searchInput');
+      const clearSearchBtn = document.getElementById('clearSearchBtn');
+      const movieCount = document.getElementById('movieCount');
+      const emptyState = document.getElementById('emptyState');
+      const errorState = document.getElementById('errorState');
+
+      let movies = [];
+
+      // Render Skeleton Placeholders during initialization
+      function renderSkeletons(count = 8) {
+        grid.innerHTML = '';
+        for (let i = 0; i < count; i++) {
+          const card = document.createElement('div');
+          card.className = 'glass-card rounded-2xl overflow-hidden border border-slate-800/60 p-3';
+          card.innerHTML = `
+            <div class="skeleton bg-slate-800 aspect-[2/3] w-full rounded-xl mb-4"></div>
+            <div class="space-y-2.5 px-1">
+              <div class="skeleton bg-slate-800 h-5 w-3/4 rounded-md"></div>
+              <div class="skeleton bg-slate-800 h-4 w-1/2 rounded-md"></div>
+              <div class="skeleton bg-slate-800 h-9 w-full rounded-xl mt-4"></div>
+            </div>
+          `;
+          grid.appendChild(card);
+        }
+      }
+
+      // Safe HTML escaping helper to prevent XSS from JSON fields
+      function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      // Render Movie Cards to Grid
+      function renderMovies(movieList) {
+        grid.innerHTML = '';
+
+        if (!movieList || movieList.length === 0) {
+          emptyState.classList.remove('hidden');
+          movieCount.textContent = '0 MOVIES';
+          return;
+        }
+
+        emptyState.classList.add('hidden');
+        movieCount.textContent = `${movieList.length} ${movieList.length === 1 ? 'MOVIE' : 'MOVIES'}`;
+
+        movieList.forEach((movie) => {
+          const card = document.createElement('article');
+          card.className = 'glass-card rounded-2xl overflow-hidden group hover:border-cyan-500/40 hover:shadow-glow-cyan transition-all duration-300 flex flex-col justify-between';
+
+          const sanitizedTitle = escapeHtml(movie.title);
+          const sanitizedYear = escapeHtml(movie.year || 'N/A');
+          const sanitizedGenre = escapeHtml(movie.genre || 'General');
+          const sanitizedPoster = escapeHtml(movie.poster || 'https://via.placeholder.com/300x450/0f172a/64748b?text=No+Poster');
+          const sanitizedLink = encodeURI(movie.link || '#');
+
+          card.innerHTML = `
+            <div class="relative overflow-hidden aspect-[2/3] bg-slate-900">
+              <img 
+                src="${sanitizedPoster}" 
+                alt="${sanitizedTitle} Poster" 
+                loading="lazy"
+                class="w-full h-full object-cover object-center transform group-hover:scale-105 transition-transform duration-500 ease-out"
+                onerror="this.onerror=null; this.src='https://via.placeholder.com/300x450/0f172a/64748b?text=Poster+Unavailable';"
+              />
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-transparent opacity-80"></div>
+              
+              <!-- Year Tag Floating Badge -->
+              <span class="absolute top-3 right-3 text-xs font-bold tracking-wider px-2.5 py-1 rounded-full bg-slate-950/80 backdrop-blur-md border border-slate-700/60 text-cyan-400">
+                ${sanitizedYear}
+              </span>
+            </div>
+
+            <div class="p-4 flex flex-col flex-grow justify-between">
+              <div>
+                <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block mb-1 truncate">
+                  ${sanitizedGenre}
+                </span>
+                <h2 class="text-base font-bold text-white tracking-tight line-clamp-1 group-hover:text-cyan-300 transition-colors">
+                  ${sanitizedTitle}
+                </h2>
+              </div>
+
+              <!-- Stream / Watch Action Button -->
+              <a 
+                href="${sanitizedLink}" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                class="mt-4 w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 text-slate-950 font-bold text-sm shadow-glow-button hover:shadow-cyan-500/40 transform active:scale-95 transition-all duration-200"
+              >
+                <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+                <span>Watch Now</span>
+              </a>
+            </div>
+          `;
+
+          grid.appendChild(card);
+        });
+      }
+
+      // Filter Logic
+      function handleSearch() {
+        const query = searchInput.value.trim().toLowerCase();
+        
+        // Toggle Clear button visibility
+        if (query.length > 0) {
+          clearSearchBtn.classList.remove('hidden');
+        } else {
+          clearSearchBtn.classList.add('hidden');
+        }
+
+        const filtered = movies.filter(movie => {
+          const title = (movie.title || '').toLowerCase();
+          const genre = (movie.genre || '').toLowerCase();
+          const year = (movie.year || '').toString().toLowerCase();
+          return title.includes(query) || genre.includes(query) || year.includes(query);
+        });
+
+        renderMovies(filtered);
+      }
+
+      // Clear Search Handler
+      clearSearchBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        clearSearchBtn.classList.add('hidden');
+        searchInput.focus();
+        renderMovies(movies);
+      });
+
+      // Search input real-time listener
+      searchInput.addEventListener('input', handleSearch);
+
+      // Fetch dynamic movies from JSON
+      async function loadMovies() {
+        renderSkeletons(8);
+        try {
+          const response = await fetch('./movies.json', {
+            cache: 'no-cache'
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          movies = await response.json();
+          renderMovies(movies);
+        } catch (error) {
+          console.error("Failed to load movie directory:", error);
+          grid.innerHTML = '';
+          movieCount.textContent = 'ERROR';
+          errorState.classList.remove('hidden');
+        }
+      }
+
+      // Initialize
+      loadMovies();
+    });
+  </script>
+</body>
+</html>
